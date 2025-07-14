@@ -4,6 +4,13 @@ Pixora Pro is a Python-based tool that lets you remotely access a device's camer
 
 ---
 
+# ⚠️ Disclaimer :
+This tool is developed strictly for educational and research purposes only.
+The developers assume no responsibility for any misuse or damage caused by this tool.
+By using this project, you agree that you are solely responsible for your actions.
+
+---
+
 ## 📦 1. Prerequisites
 
 - **Python 3.7 or higher**
