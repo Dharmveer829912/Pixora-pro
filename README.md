@@ -149,6 +149,8 @@ After a short wait, you’ll see:
 
 **Send this link to your target user.**
 
+### c. If Cloudflared fails to generate a link or the link doesn't open in your browser, try using an alternative tunnel service such as Ngrok, LocalXpose, or Serveo. Note that this tool runs on port 8080.
+
 ---
 
 ## 🔄 4. How to Switch Camera Remotely
