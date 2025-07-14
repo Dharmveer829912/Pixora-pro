@@ -23,7 +23,7 @@ Pixora Pro is a Python-based tool that lets you remotely access a device's camer
 > or download from [git-scm.com](https://git-scm.com/)
 
 ```sh
-git clone https://github.com/dharmveer829912/pixora-pro.git
+git clone https://github.com/Dharmveer829912/Pixora-pro.git
 cd pixora-pro
 ```
 
@@ -178,7 +178,7 @@ git init
 git add pixora.py requirements.txt README.md LICENSE
 git commit -m "Initial Pixora Pro"
 git branch -M main
-git remote add origin https://github.com/dharmveer829912/pixora-pro.git
+git remote set-url origin https://github.com/Dharmveer829912/Pixora-pro.git
 git push -u origin main
 ```
 
