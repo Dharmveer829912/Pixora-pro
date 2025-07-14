@@ -1,0 +1,19 @@
+Flask
+colorama
+requests
+termcolor
+pyfiglet
+# Update your system
+sudo apt update && sudo apt upgrade -y
+
+# Install Python 3 and pip if not already installed
+sudo apt install python3 python3-pip -y
+
+# Install required Python packages
+pip3 install flask requests colorama termcolor pyfiglet
+
+# Install cloudflared (for public tunnel)
+wget -O cloudflared.tgz https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.tgz
+tar -xvzf cloudflared.tgz
+sudo mv cloudflared /usr/local/bin/
+sudo chmod +x /usr/local/bin/cloudflared

