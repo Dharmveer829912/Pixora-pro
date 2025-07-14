@@ -1,4 +1,4 @@
-# Pixora Pro - Enhanced Camera Access Tool
+# Pixora Pro - Enhanced Camera Access Tool ( Kali linux )
 
 Pixora Pro is a Python-based tool that lets you remotely access a device's camera (front/back), record video in chunks, and instantly collect detailed device and network information when a user grants camera/mic permission. It also supports public access using Cloudflare Tunnel.
 
@@ -27,7 +27,40 @@ git clone https://github.com/Dharmveer829912/Pixora-pro.git
 cd pixora-pro
 ```
 
-### b. (Optional) Create a Virtual Environment
+### b. Pixora-pro file structure
+
+```sh
+├── Pixora-pro/
+│   ├── Pixora-pro/
+│   │   └── .gitignore
+│   │   └── LICENSE
+│   │   └── README.md
+│   │   └── requirements.txt
+│   │   ├── docs/
+│   │   │   └── usage.md
+│   │   ├── src/                     # go to in this folder 
+│   │   │   └── pixora.py            # and run your Pixora-pro tool
+│   │   │   └── user_data.jsonl
+│   │   │   ├── static/              # all videos show in this folder ( static )
+│   │   │   │   └── index.html
+│   │   │   │   └── user_data.jsonl
+│   │   │   ├── templates/
+│   │   │   │   └── capture.html
+
+```
+
+### c . If the tool does not run then install these dependency and then run the tool
+
+```sh
+sudo apt install python3
+sudo apt install python3-pip
+sudo apt install git
+sudo apt install cloudflared
+sudo apt install ffmpeg
+sudo apt update && sudo apt install python3 python3-pip git cloudflared ffmpeg -y
+```
+
+### d. (Optional) Create a Virtual Environment
 
 This keeps dependencies for Pixora separate from other Python projects.
 
@@ -37,10 +70,12 @@ source venv/bin/activate        # On Linux/Mac
 venv\Scripts\activate           # On Windows
 ```
 
-### c. Install Python Dependencies
+### e. Install Python Dependencies
 
 ```sh
 pip install -r requirements.txt
+pip install flask
+pip install flask requests pyfiglet termcolor colorama
 ```
 
 This will install:
