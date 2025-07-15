@@ -211,24 +211,7 @@ The author is **not responsible** for any misuse.
 
 ---
 
-## 📝 9. How To Upload/Share On Your GitHub
-
-1. [Create a new repo](https://github.com/new) (e.g., `pixora-pro`)
-2. Make sure your code, `requirements.txt`, `README.md`, and `LICENSE` are in the folder.
-3. Run:
-
-```sh
-git init
-git add pixora.py requirements.txt README.md LICENSE
-git commit -m "Initial Pixora Pro"
-git branch -M main
-git remote set-url origin https://github.com/Dharmveer829912/Pixora-pro.git
-git push -u origin main
-```
-
----
-
-## 🎉 10. You’re Done!
+## 🎉 9. You’re Done!
 
 - Give your link to your target user
 - Instantly collect and print device info and record camera video
